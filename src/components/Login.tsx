@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Icons } from "@/components/icons";
 import Image from "next/image";
 import Logo from "@/assets/logo.png";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -97,6 +98,15 @@ export default function LoginPage() {
                 "Masuk"
               )}
             </Button>
+            <div className="text-center mt-4">
+              <span className="text-sm text-gray-600">Belum punya akun? </span>
+              <Link
+                href="/register"
+                className="text-sm text-blue-500 hover:underline"
+              >
+                Daftar di sini
+              </Link>
+            </div>
           </form>
         </CardContent>
       </Card>

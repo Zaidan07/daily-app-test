@@ -17,10 +17,10 @@ export default withAuth({
     },
   },
   pages: {
-    signIn: "/login",
+    signIn: "/register",
   }
 })
 
 export const config = {
-  matcher: ["/((?!login|api|_next|favicon.ico|assets).*)"],
+  matcher: ["/((?!register|api|_next|favicon.ico|assets).*)"],
 };
