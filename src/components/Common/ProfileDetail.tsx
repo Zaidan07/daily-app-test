@@ -64,7 +64,7 @@ export default function ProfilePage() {
         <div className="flex flex-col items-center mb-6">
           <input
             type="file"
-            accept="image/*"
+            accept="image/gif,image/png,image/jpeg"
             className="hidden"
             ref={fileInputRef}
             onChange={handleAvatarChange}
