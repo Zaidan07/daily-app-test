@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
+import { compressImage, formatFileSize } from "@/lib/imageUtils";
 
 export default function ProfilePage() {
   const { data: session, update } = useSession();
@@ -27,33 +28,53 @@ export default function ProfilePage() {
       return;
     }
 
-    const maxSize = file.type === "image/gif" ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      const maxMB = file.type === "image/gif" ? "10MB" : "5MB";
-      setError(`File terlalu besar. Maksimal ${maxMB}.`);
-      return;
-    }
-
     setAvatarLoading(true);
     setError("");
 
     try {
+      let processedFile = file;
+
+      if (file.type !== "image/gif" && file.size > 2 * 1024 * 1024) {
+        console.log(`Original file size: ${formatFileSize(file.size)}`);
+        processedFile = await compressImage(file, 800, 0.8);
+        console.log(`Compressed file size: ${formatFileSize(processedFile.size)}`);
+      }
+
+      const maxSize = processedFile.type === "image/gif" ? 15 * 1024 * 1024 : 8 * 1024 * 1024; 
+      if (processedFile.size > maxSize) {
+        const maxMB = processedFile.type === "image/gif" ? "15MB" : "8MB";
+        setError(`File masih terlalu besar setelah kompresi. Maksimal ${maxMB}.`);
+        setAvatarLoading(false);
+        return;
+      }
       const formData = new FormData();
-      formData.append("avatar", file);
+      formData.append("avatar", processedFile);
 
       const res = await fetch("/api/profile/avatar", {
         method: "POST",
         body: formData,
       });
 
-      const data = await res.json();
+      let data;
+      const contentType = res.headers.get("content-type");
+      
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        data = { error: text || `HTTP ${res.status}: ${res.statusText}` };
+      }
 
       if (res.ok) {
-        await update(); 
+        await update();
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
       } else {
-        setError(data.error || "Gagal mengunggah avatar");
+        if (res.status === 413) {
+          setError("File terlalu besar untuk server. Coba kompres gambar atau gunakan file yang lebih kecil.");
+        } else {
+          setError(data.error || `Gagal mengunggah avatar (${res.status})`);
+        }
       }
     } catch (error) {
       console.error("Avatar upload error:", error);
@@ -101,6 +122,7 @@ export default function ProfilePage() {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="max-w-lg h-screen mx-auto flex items-center">

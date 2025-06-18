@@ -1,0 +1,11 @@
+
+{
+    "functions": {
+      "app/api/profile/avatar/route.ts": {
+        "maxDuration": 60
+      }
+    },
+    "limits": {
+      "maxRequestBodySize": "25mb"
+    }
+  }

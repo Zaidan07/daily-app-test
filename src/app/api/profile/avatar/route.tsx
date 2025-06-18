@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const file = formData.get("avatar") as File;
 
     if (!file) {
-      return NextResponse.json({ error: "No file" }, { status: 400 });
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
     const allowedTypes = ["image/png", "image/jpeg", "image/gif", "image/jpg"];
@@ -26,11 +26,11 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    const maxSize = file.type === "image/gif" ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+    const maxSize = file.type === "image/gif" ? 15 * 1024 * 1024 : 8 * 1024 * 1024; // 15MB for GIF, 8MB for others
     if (file.size > maxSize) {
-      const maxMB = file.type === "image/gif" ? "10MB" : "5MB";
+      const maxMB = file.type === "image/gif" ? "15MB" : "8MB";
       return NextResponse.json({ 
-        error: `File too large. Maximum size: ${maxMB}` 
+        error: `File terlalu besar. Maksimal ${maxMB}` 
       }, { status: 400 });
     }
 
@@ -38,7 +38,6 @@ export async function POST(req: NextRequest) {
     const filename = `avatar_${session.user.id}_${uuidv4()}.${ext}`;
 
     console.log(`Uploading file: ${filename}, size: ${file.size}, type: ${file.type}`);
-
 
     try {
       const bytes = await file.arrayBuffer();
