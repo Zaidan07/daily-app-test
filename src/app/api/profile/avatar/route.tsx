@@ -19,49 +19,100 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file" }, { status: 400 });
     }
 
-    const allowedTypes = ["image/png", "image/jpeg", "image/gif"];
+    const allowedTypes = ["image/png", "image/jpeg", "image/gif", "image/jpg"];
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
+      return NextResponse.json({ 
+        error: `Invalid file type: ${file.type}. Allowed: ${allowedTypes.join(", ")}` 
+      }, { status: 400 });
     }
 
     const maxSize = file.type === "image/gif" ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      return NextResponse.json({ error: "File too large" }, { status: 400 });
+      const maxMB = file.type === "image/gif" ? "10MB" : "5MB";
+      return NextResponse.json({ 
+        error: `File too large. Maximum size: ${maxMB}` 
+      }, { status: 400 });
     }
 
-    const ext = file.name.split(".").pop();
-    const filename = `${uuidv4()}.${ext}`;
+    const ext = file.name.split(".").pop() || "jpg";
+    const filename = `avatar_${session.user.id}_${uuidv4()}.${ext}`;
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    console.log(`Uploading file: ${filename}, size: ${file.size}, type: ${file.type}`);
 
-    const { error: uploadError } = await supabase.storage
-      .from("avatars")
-      .upload(filename, buffer, {
-        cacheControl: "3600",
-        upsert: true,
-        contentType: file.type,
+
+    try {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      const currentUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { avatar: true }
       });
 
-    if (uploadError) {
-      console.error("Upload error:", uploadError);
-      return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+      if (currentUser?.avatar) {
+        const oldFilename = currentUser.avatar.split('/').pop();
+        if (oldFilename) {
+          await supabase.storage
+            .from("avatars")
+            .remove([oldFilename]);
+        }
+      }
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filename, buffer, {
+          cacheControl: "3600",
+          upsert: true,
+          contentType: file.type,
+        });
+
+      if (uploadError) {
+        console.error("Supabase upload error:", uploadError);
+        return NextResponse.json({ 
+          error: `Upload failed: ${uploadError.message}` 
+        }, { status: 500 });
+      }
+
+      console.log("Upload successful:", uploadData);
+
+      const { data: publicUrlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filename);
+
+      const avatarUrl = publicUrlData.publicUrl;
+      
+      if (!avatarUrl) {
+        return NextResponse.json({ 
+          error: "Failed to generate public URL" 
+        }, { status: 500 });
+      }
+
+      console.log("Public URL generated:", avatarUrl);
+
+      await prisma.user.update({
+        where: { id: session.user.id },
+        data: { avatar: avatarUrl },
+      });
+
+      console.log("Database updated successfully");
+
+      return NextResponse.json({ 
+        success: true, 
+        url: avatarUrl,
+        message: "Avatar uploaded successfully"
+      });
+
+    } catch (supabaseError) {
+      console.error("Supabase operation error:", supabaseError);
+      return NextResponse.json({ 
+        error: `Storage operation failed: ${supabaseError}` 
+      }, { status: 500 });
     }
 
-    const { data: publicUrlData } = supabase.storage
-      .from("avatars")
-      .getPublicUrl(filename);
-
-    const avatarUrl = publicUrlData.publicUrl;
-
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: { avatar: avatarUrl },
-    });
-
-    return NextResponse.json({ success: true, url: avatarUrl });
   } catch (err) {
-    console.error("Unexpected error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("Unexpected error in avatar upload:", err);
+    return NextResponse.json({ 
+      error: `Internal server error: ${err instanceof Error ? err.message : 'Unknown error'}` 
+    }, { status: 500 });
   }
 }

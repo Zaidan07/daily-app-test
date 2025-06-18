@@ -12,6 +12,8 @@ export default function ProfilePage() {
   const [username, setUsername] = useState(session?.user?.name || "");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
+  const [avatarLoading, setAvatarLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -19,22 +21,56 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append("avatar", file);
+    const allowedTypes = ["image/png", "image/jpeg", "image/gif", "image/jpg"];
+    if (!allowedTypes.includes(file.type)) {
+      setError("Tipe file tidak didukung. Gunakan PNG, JPG, atau GIF.");
+      return;
+    }
 
-    const res = await fetch("/api/profile/avatar", {
-      method: "POST",
-      body: formData,
-    });
+    const maxSize = file.type === "image/gif" ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      const maxMB = file.type === "image/gif" ? "10MB" : "5MB";
+      setError(`File terlalu besar. Maksimal ${maxMB}.`);
+      return;
+    }
 
-    if (res.ok) {
-      await update();
+    setAvatarLoading(true);
+    setError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const res = await fetch("/api/profile/avatar", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        await update(); 
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      } else {
+        setError(data.error || "Gagal mengunggah avatar");
+      }
+    } catch (error) {
+      console.error("Avatar upload error:", error);
+      setError("Terjadi kesalahan saat mengunggah avatar");
+    } finally {
+      setAvatarLoading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
   const handleSave = async () => {
     setLoading(true);
     setSuccess(false);
+    setError("");
+
     try {
       const res = await fetch("/api/profile", {
         method: "POST",
@@ -42,17 +78,25 @@ export default function ProfilePage() {
         body: JSON.stringify({ name: username }),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
         setSuccess(true);
         await update();
-        if (session?.user?.role === "ADMIN") {
-          router.push("/admin");
-        } else {
-          router.push("/user");
-        }
+        
+        setTimeout(() => {
+          if (session?.user?.role === "ADMIN") {
+            router.push("/admin");
+          } else {
+            router.push("/user");
+          }
+        }, 1000);
+      } else {
+        setError(data.error || "Gagal memperbarui profil");
       }
     } catch (error) {
-      console.error("Update failed:", error);
+      console.error("Profile update failed:", error);
+      setError("Terjadi kesalahan saat memperbarui profil");
     } finally {
       setLoading(false);
     }
@@ -64,15 +108,16 @@ export default function ProfilePage() {
         <div className="flex flex-col items-center mb-6">
           <input
             type="file"
-            accept="image/gif,image/png,image/jpeg"
+            accept="image/gif,image/png,image/jpeg,image/jpg"
             className="hidden"
             ref={fileInputRef}
             onChange={handleAvatarChange}
+            disabled={avatarLoading}
           />
           <div
-            onClick={() => fileInputRef.current?.click()}
-            className="cursor-pointer"
-            title="Ganti avatar"
+            onClick={() => !avatarLoading && fileInputRef.current?.click()}
+            className={`cursor-pointer relative h-16 w-16 ${avatarLoading ? 'opacity-50' : ''}`}
+            title={avatarLoading ? "Mengunggah..." : "Ganti avatar"}
           >
             <Avatar className="h-16 w-16 mb-2">
               {session?.user?.image ? (
@@ -83,9 +128,22 @@ export default function ProfilePage() {
                 </AvatarFallback>
               )}
             </Avatar>
+            {avatarLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full">
+                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            )}
           </div>
-          <p className="text-sm text-gray-500">(Klik avatar untuk mengganti)</p>
+          <p className="text-sm text-gray-500">
+            {avatarLoading ? "Mengunggah..." : "(Klik avatar untuk mengganti)"}
+          </p>
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
+          </div>
+        )}
 
         <div className="space-y-4">
           <div>
@@ -113,9 +171,10 @@ export default function ProfilePage() {
             <Input value={session?.user?.role || ""} disabled />
           </div>
 
-          <Button onClick={handleSave} disabled={loading}>
+          <Button onClick={handleSave} disabled={loading || avatarLoading}>
             {loading ? "Menyimpan..." : "Simpan"}
           </Button>
+          
           {success && (
             <p className="text-green-600 text-sm">
               Profil berhasil diperbarui!
