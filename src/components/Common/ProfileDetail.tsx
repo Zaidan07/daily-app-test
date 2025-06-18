@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function ProfilePage() {
   const { data: session, update } = useSession();
@@ -18,19 +19,42 @@ export default function ProfilePage() {
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    const formData = new FormData();
-    formData.append("avatar", file);
-
-    const res = await fetch("/api/profile/avatar", {
+  
+    const filename = `${crypto.randomUUID()}.${file.name.split(".").pop()}`;
+  
+    const { error } = await supabase.storage
+      .from("avatars")
+      .upload(`public/${filename}`, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+  
+    if (error) {
+      console.error("Upload error:", error.message);
+      return;
+    }
+  
+    const { data } = supabase.storage.from("avatars").getPublicUrl(`public/${filename}`);
+    const avatarUrl = data?.publicUrl;
+  
+    if (!avatarUrl) {
+      console.error("Failed to get public URL");
+      return;
+    }
+  
+    const res = await fetch("/api/profile", {
       method: "POST",
-      body: formData,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ avatar: avatarUrl }),
     });
-
+  
     if (res.ok) {
-      await update();
+      await update(); 
+      setSuccess(true);
     }
   };
+  
+  
 
   const handleSave = async () => {
     setLoading(true);
@@ -76,7 +100,7 @@ export default function ProfilePage() {
           >
             <Avatar className="h-16 w-16 mb-2">
               {session?.user?.image ? (
-                <AvatarImage src={session.user.image} alt="profile" />
+                <AvatarImage src={session?.user?.image ?? ""} alt="profile" />
               ) : (
                 <AvatarFallback>
                   {session?.user?.name?.[0]?.toUpperCase() ?? "?"}
