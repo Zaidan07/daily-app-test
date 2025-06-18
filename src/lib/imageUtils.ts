@@ -42,6 +42,7 @@ export const compressImage = (file: File, maxWidth: number = 800, quality: numbe
           quality
         );
       };
+      
   
       img.src = URL.createObjectURL(file);
     });
