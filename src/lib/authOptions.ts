@@ -52,6 +52,7 @@ export const authOptions: AuthOptions = {
         token.name = user.name;
         token.email = user.email;
         token.image = user.avatar;
+        token.profileFrame = user.profileFrame ?? "";
       } else {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email as string },
@@ -60,16 +61,19 @@ export const authOptions: AuthOptions = {
           token.name = dbUser.name;
           token.role = dbUser.role;
           token.image = dbUser.avatar ?? "";
+          token.profileFrame = dbUser.profileFrame ?? "";
         }
       }
       return token;
     },
+
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id ?? "";
         session.user.role = (token.role as "USER" | "ADMIN") ?? "USER";
         session.user.name = token.name ?? "";
         session.user.image = token.image ?? "";
+        session.user.profileFrame = token.profileFrame ?? "";
       }
       return session;
     },

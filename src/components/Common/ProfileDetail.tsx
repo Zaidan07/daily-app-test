@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
 import { compressImage, formatFileSize } from "@/lib/imageUtils";
+import { profileFrameStyles } from "@/utils/profileFrameStyles";
 
 export default function ProfilePage() {
   const { data: session, update } = useSession();
@@ -17,8 +18,14 @@ export default function ProfilePage() {
   const [avatarLoading, setAvatarLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const [selectedFrame, setSelectedFrame] = useState(
+    session?.user?.profileFrame || "default"
+  );
+  const borderStyle = profileFrameStyles[selectedFrame || "default"];
+
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -37,13 +44,18 @@ export default function ProfilePage() {
       if (file.type !== "image/gif" && file.size > 2 * 1024 * 1024) {
         console.log(`Original file size: ${formatFileSize(file.size)}`);
         processedFile = await compressImage(file, 800, 0.8);
-        console.log(`Compressed file size: ${formatFileSize(processedFile.size)}`);
+        console.log(
+          `Compressed file size: ${formatFileSize(processedFile.size)}`
+        );
       }
 
-      const maxSize = processedFile.type === "image/gif" ? 15 * 1024 * 1024 : 8 * 1024 * 1024; 
+      const maxSize =
+        processedFile.type === "image/gif" ? 15 * 1024 * 1024 : 8 * 1024 * 1024;
       if (processedFile.size > maxSize) {
         const maxMB = processedFile.type === "image/gif" ? "15MB" : "8MB";
-        setError(`File masih terlalu besar setelah kompresi. Maksimal ${maxMB}.`);
+        setError(
+          `File masih terlalu besar setelah kompresi. Maksimal ${maxMB}.`
+        );
         setAvatarLoading(false);
         return;
       }
@@ -57,7 +69,7 @@ export default function ProfilePage() {
 
       let data;
       const contentType = res.headers.get("content-type");
-      
+
       if (contentType && contentType.includes("application/json")) {
         data = await res.json();
       } else {
@@ -71,7 +83,9 @@ export default function ProfilePage() {
         setTimeout(() => setSuccess(false), 3000);
       } else {
         if (res.status === 413) {
-          setError("File terlalu besar untuk server. Coba kompres gambar atau gunakan file yang lebih kecil.");
+          setError(
+            "File terlalu besar untuk server. Coba kompres gambar atau gunakan file yang lebih kecil."
+          );
         } else {
           setError(data.error || `Gagal mengunggah avatar (${res.status})`);
         }
@@ -96,7 +110,7 @@ export default function ProfilePage() {
       const res = await fetch("/api/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: username }),
+        body: JSON.stringify({ name: username, profileFrameStyles: selectedFrame }),
       });
 
       const data = await res.json();
@@ -104,7 +118,7 @@ export default function ProfilePage() {
       if (res.ok) {
         setSuccess(true);
         await update();
-        
+
         setTimeout(() => {
           if (session?.user?.role === "ADMIN") {
             router.push("/admin");
@@ -123,7 +137,6 @@ export default function ProfilePage() {
     }
   };
 
-
   return (
     <div className="max-w-lg h-screen mx-auto flex items-center">
       <div className="w-full bg-white p-6 rounded shadow border">
@@ -138,10 +151,12 @@ export default function ProfilePage() {
           />
           <div
             onClick={() => !avatarLoading && fileInputRef.current?.click()}
-            className={`cursor-pointer relative h-16 w-16 ${avatarLoading ? 'opacity-50' : ''}`}
+            className={`cursor-pointer relative h-16 w-16 ${
+              avatarLoading ? "opacity-50" : ""
+            }`}
             title={avatarLoading ? "Mengunggah..." : "Ganti avatar"}
           >
-            <Avatar className="h-16 w-16 mb-2">
+            <Avatar className={`h-16 w-16 mb-2 ${borderStyle}`}>
               {session?.user?.image ? (
                 <AvatarImage src={session.user.image} alt="profile" />
               ) : (
@@ -166,6 +181,24 @@ export default function ProfilePage() {
             {error}
           </div>
         )}
+
+        <div className="mb-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Avatar Border Style
+          </label>
+          <select
+            className="w-full mt-1 border p-2 rounded-[10px]"
+            value={selectedFrame}
+            onChange={(e) => setSelectedFrame(e.target.value)}
+            disabled={loading}
+          >
+            {Object.keys(profileFrameStyles).map((key) => (
+              <option key={key} value={key}>
+                {key.charAt(0).toUpperCase() + key.slice(1)}
+              </option>
+            ))}
+          </select>
+        </div>
 
         <div className="space-y-4">
           <div>
@@ -196,7 +229,7 @@ export default function ProfilePage() {
           <Button onClick={handleSave} disabled={loading || avatarLoading}>
             {loading ? "Menyimpan..." : "Simpan"}
           </Button>
-          
+
           {success && (
             <p className="text-green-600 text-sm">
               Profil berhasil diperbarui!
