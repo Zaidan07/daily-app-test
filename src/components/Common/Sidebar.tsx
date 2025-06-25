@@ -29,7 +29,7 @@ const Sidebar = ({ role }: SidebarProps) => {
   ];
 
   const userMenu = [
-    { href: "/user", label: "Dashboard", icon: <FaHome /> },
+    { href: "/user", label: "Dashboards", icon: <FaHome /> },
     { href: "/user/daily", label: "Isi Daily", icon: <FaTasks /> },
     { href: "/user/leaderboard", label: "Leaderboard", icon: <FaTrophy /> },
     { href: "/user/history", label: "Riwayat", icon: <FaHistory /> },
