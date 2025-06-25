@@ -11,12 +11,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { profileFrameStyles } from "@/utils/profileFrameStyles";
 
-
 export default function Navbar() {
   const { data: session } = useSession();
   const [time, setTime] = useState("");
-  const borderStyle = profileFrameStyles[session?.user?.profileFrame || "default"];
-
+  const borderStyle =
+    profileFrameStyles[session?.user?.profileFrame || "default"];
 
   useEffect(() => {
     const updateTime = () => {
@@ -33,16 +32,19 @@ export default function Navbar() {
       <div className="text-gray-600 pl-[610px] font-mono">{time}</div>
       <DropdownMenu>
         <DropdownMenuTrigger className="flex items-center gap-2 cursor-pointer">
-            <Avatar className={`h-8 w-8 ${borderStyle}`}>
-              {session?.user?.image ? (
-                <AvatarImage src={session.user.image} alt="profile" />
-              ) : (
-                <AvatarFallback>
-                  {session?.user?.name?.[0]?.toUpperCase() ?? "?"}
-                </AvatarFallback>
-              )}
-            </Avatar>
-          <span key={session?.user?.name} className="text-sm text-black hidden sm:inline">
+          <Avatar className={`h-8 w-8 ${borderStyle}`}>
+            {session?.user?.image ? (
+              <AvatarImage src={session.user.image} alt="profile" />
+            ) : (
+              <AvatarFallback>
+                {session?.user?.name?.[0]?.toUpperCase() ?? "?"}
+              </AvatarFallback>
+            )}
+          </Avatar>
+          <span
+            key={session?.user?.name}
+            className="text-sm text-black hidden sm:inline"
+          >
             {session?.user?.name}
           </span>
         </DropdownMenuTrigger>

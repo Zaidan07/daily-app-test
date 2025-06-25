@@ -26,7 +26,7 @@ export default async function AdminDashboardPage() {
                 {Array.isArray(daily.note)
                   ? daily.note.map((item, idx) => <li key={idx}>{item}</li>)
                   : daily.note
-                      .split("\n") 
+                      .split("\n")
                       .filter(Boolean)
                       .map((item, idx) => <li key={idx}>{item}</li>)}
               </ul>
