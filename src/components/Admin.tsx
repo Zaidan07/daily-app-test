@@ -5,8 +5,8 @@ export default async function AdminDashboardPage() {
   const dailies = await getAllDailies();
 
   return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-bold">Dashboard Admin</h1>
+    <div className="space-y-4 ">
+      {/* <h1 className="text-2xl font-bold">Dashboard Admin</h1> */}
 
       {dailies.length === 0 && <p>Tidak ada data daily.</p>}
 

@@ -25,7 +25,11 @@ const Sidebar = ({ role }: SidebarProps) => {
     { href: "/admin", label: "Dashboard", icon: <FaHome /> },
     { href: "/admin/leaderboard", label: "Leaderboard", icon: <FaTrophy /> },
     { href: "/admin/daily", label: "Daily", icon: <FaClipboardList /> },
-    { href: "/admin/notification", label: "Custom Notification", icon: <FaBell /> },
+    {
+      href: "/admin/notification",
+      label: "Custom Notification",
+      icon: <FaBell />,
+    },
   ];
 
   const userMenu = [
@@ -38,15 +42,17 @@ const Sidebar = ({ role }: SidebarProps) => {
   const menu = role === "ADMIN" ? adminMenu : userMenu;
 
   return (
-    <aside className="w-64 h-screen bg-white p-4 border-r ">
-      <div className="flex items-center justify-center mb-5"><Image src={Logo} alt="" width={70} height={70}/></div>
+    <aside className="w-[284px] mr-[26px] bg-white p-4 rounded-[18px] shadow-[0_0_16px_0_#0000001A]">
+      <div className="flex284 items-center justify-center mb-5">
+        <Image src={Logo} alt="" width={70} height={70} />
+      </div>
       <nav className="space-y-2">
         {menu.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             className={cn(
-              "flex items-center gap-3 px-4 py-2 rounded-mdtransition rounded-2xl",
+              "flex items-center gap-3 px-4 py-2 transition rounded-2xl",
               pathname === item.href && "bg-gray-800"
                 ? "bg-gray-100 text-black"
                 : "text-gray-600 hover:bg-gray-50 hover:text-black"

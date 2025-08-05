@@ -28,7 +28,7 @@ export default function Navbar() {
     return () => clearInterval(interval);
   }, []);
   return (
-    <header className="w-full flex justify-between items-center px-[120px] py-3 bg-white">
+    <header className="w-full h-6 rounded-[18px] px-[50px] py-[30px] mb-[26px] flex justify-between items-center bg-white">
       <div className="text-gray-600 pl-[610px] font-mono">{time}</div>
       <DropdownMenu>
         <DropdownMenuTrigger className="flex items-center gap-2 cursor-pointer">
