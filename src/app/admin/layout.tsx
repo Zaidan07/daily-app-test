@@ -7,7 +7,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     const session = await getServerSession()
     const role = session?.user?.role ?? "ADMIN"
   return (
-    <div className="flex h-screen">
+    <div className="flex px-[50px] py-6 h-screen bg-[#EDEBEA]">
       <SidebarAdmin role={role}/>
       <div className="flex-1 flex flex-col">
         <Navbar />
